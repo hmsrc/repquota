@@ -27,6 +27,7 @@
 #endif
 #include <ctype.h>
 #include <pwd.h>
+#include <grp.h>
 #if HAVE_GETOPT_H
 #include <getopt.h>
 #endif
@@ -315,7 +316,7 @@ uidscan(confent_t *cp, List qlist, List uids, int getusername)
                 snprintf (name, sizeof(name), "%s", pw->pw_name);
             else 
                 snprintf (name, sizeof(name), "[%lu]", *up);
-            add_quota(cp, qlist, pw->pw_uid, name);
+            add_quota(cp, qlist, pw->pw_gid, name);
         } else
             add_quota(cp, qlist, (uid_t)*up, NULL);
     }
@@ -349,13 +350,13 @@ dirscan(confent_t *cp, List qlist, List uids, int getusername)
         if (uids && !listint_member(uids, sb.st_uid))
             continue;
         if (getusername) {
-            if ((pw = getpwuid(sb.st_uid)))
+            if ((pw = getpwuid(sb.st_gid)))
                 snprintf (name, sizeof(name), "%s", pw->pw_name);
             else
                 snprintf (name, sizeof(name), "[%s]", dp->d_name);
-            add_quota(cp, qlist, sb.st_uid, name);
+            add_quota(cp, qlist, sb.st_gid, name);
         } else
-            add_quota(cp, qlist, sb.st_uid, NULL);
+            add_quota(cp, qlist, sb.st_gid, NULL);
     }
     if (closedir(dir) < 0)
         fprintf(stderr, "%s: closedir %s: %m\n", prog, cp->cf_rpath);
@@ -364,18 +365,36 @@ dirscan(confent_t *cp, List qlist, List uids, int getusername)
 /* Get quotas for all users in the password file, optionally filtered
  * by uids list.
  */
-static void
+/*static void
 pwscan(confent_t *cp, List qlist, List uids, int getusername)
 {
     struct passwd *pw;
     quota_t q;
 
     while ((pw = getpwent()) != NULL) {
-        if (uids && !listint_member(uids, pw->pw_uid))
+        if (uids && !listint_member(uids, pw->pw_gid))
             continue;
-        add_quota(cp, qlist, pw->pw_uid, getusername ? pw->pw_name : NULL);
+        add_quota(cp, qlist, pw->pw_gid, getusername ? pw->pw_name : NULL);
     }
 }
+*/
+
+/* Get quotas for all users in the password file, optionally filtered
+ * by uids list.
+ */
+static void
+pwscan(confent_t *cp, List qlist, List uids, int getusername)
+{
+    struct group *gr;
+    quota_t q;
+
+    while ((gr = getgrent()) != NULL) {
+        if (uids && !listint_member(uids, gr->gr_gid))
+            continue;
+        add_quota(cp, qlist, gr->gr_gid, getusername ? gr->gr_name : NULL);
+    }
+}
+
 
 /*
  * vi:tabstop=4 shiftwidth=4 expandtab

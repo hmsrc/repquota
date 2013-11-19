@@ -1,0 +1,36 @@
+.TH quota.conf 5 "2012-06-07" "rquota-2.2.8" "rquota"
+.SH NAME
+quota.conf \- configuration file for remote quota program
+.SH DESCRIPTION
+.B quota
+reads a list of filesystems from the
+.I "quota.conf"
+configuration file.  Filesystems are one per line, with no provision for
+continuation lines.  A ``#'' character anywhere on a line is used to begin
+a comment.  Each line has the following format:
+.IP
+   description:hostname:remote_path:percent[:nolimit]
+.LP
+.I "description" 
+is the path that will be displayed by the quota program,
+typically the local mount point.
+.LP
+.I "hostname" 
+is the name of the NFS server exporting the file system, or
+the string ``lustre'' if the file system type is Lustre.
+.LP
+.I "remote_path"
+is the NFS server-side path of file system, or
+the local mount point if the file system type is Lustre.
+.LP
+\fIpercent\fR is the percentage of hard quota which, when exceeded,
+causes quota to warn the user.  This can be used as a simpler alternative
+to soft quotas if desired.  Set to zero to disable.
+.LP
+\fInolimit\fR is an optional flag that indicates that this file system
+has no limits set so don't bother querying it when \fBquota\fR is run
+without the \fI-v\fR option.
+.SH "FILES"
+/usr/local/etc/quota.conf
+.SH "SEE ALSO"
+quota(1), repquota(8)

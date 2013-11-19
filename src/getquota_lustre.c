@@ -93,6 +93,7 @@ quota_get_lustre(uid_t uid, quota_t q)
     memset(&qctl, 0, sizeof(qctl));
     qctl.qc_cmd = LUSTRE_Q_GETQUOTA;
     qctl.qc_id = uid;
+    qctl.qc_type = GRPQUOTA;
     rc = llapi_quotactl(q->q_rpath, &qctl);
     if (rc) {
         fprintf(stderr, "%s: llapi_quotactl %s: %s\n", 

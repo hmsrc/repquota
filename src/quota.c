@@ -52,9 +52,9 @@
 
 static void usage(void);
 static void alarm_handler(int arg);
-static void lookup_user_byname(char *user, uid_t *uidp, char **dirp);
-static void lookup_user_byuid(char *user, uid_t *uidp, char **dirp);
-static void lookup_self(char **userp, uid_t *uidp, char **dirp);
+static void lookup_user_byname(char *user, uid_t *uidp, gid_t *gidp, char **dirp);
+static void lookup_user_byuid(char *user, uid_t *uidp, gid_t *gidp, char **dirp);
+static void lookup_self(char **userp, uid_t *uidp, gid_t *gidp, char **dirp);
 static void get_login_quota(conf_t config, char *homedir, uid_t uid,
                             List qlist, int skipnolimit);
 static void get_all_quota(conf_t config, uid_t uid, List qlist,
@@ -87,6 +87,7 @@ main(int argc, char *argv[])
     char *user = NULL;
     char *dir = NULL;
     uid_t uid;
+    gid_t gid;
     int c;
     extern char *optarg;
     extern int optind;
@@ -135,11 +136,11 @@ main(int argc, char *argv[])
         usage();
 
     if (!user)
-        lookup_self(&user, &uid, &dir);
+        lookup_self(&user, &uid, &gid, &dir);
     else if (isdigit(*user))
-        lookup_user_byuid(user, &uid, &dir);
+        lookup_user_byuid(user, &uid, &gid, &dir);
     else
-        lookup_user_byname(user, &uid, &dir);
+        lookup_user_byname(user, &uid, &gid, &dir);
 
     config = conf_init(conf_path); /* exit/perror on error */
 
@@ -193,7 +194,7 @@ alarm_handler(int arg)
 }
 
 static void
-lookup_self(char **userp, uid_t *uidp, char **dirp)
+lookup_self(char **userp, uid_t *uidp, gid_t *gidp, char **dirp)
 {
     struct passwd *pw = getpwuid(geteuid());
 
@@ -202,16 +203,18 @@ lookup_self(char **userp, uid_t *uidp, char **dirp)
         exit(1);
     }
     *uidp = pw->pw_uid;
+    *gidp = pw->pw_gid;
     *dirp = xstrdup(pw->pw_dir);
     *userp = xstrdup(pw->pw_name);
 }
 
 static void
-lookup_user_byuid(char *user, uid_t *uidp, char **dirp)
+lookup_user_byuid(char *user, uid_t *uidp, gid_t *gidp, char **dirp)
 {
     struct passwd *pw;
     char *endptr;
     uid_t uid = strtoul(user, &endptr, 10);
+    gid_t gid = strtoul(user, &endptr, 10);
     
     if (*endptr != '\0') {
         fprintf(stderr, "%s: error parsing uid\n", prog);
@@ -220,6 +223,7 @@ lookup_user_byuid(char *user, uid_t *uidp, char **dirp)
     pw = getpwuid(uid);
     if (pw) {
     	*uidp = pw->pw_uid;
+    	*gidp = pw->pw_gid;
         *dirp = xstrdup(pw->pw_dir);
     /* N.B. Passwd lookup failure of numerical user arg is not fatal.
      * In testing, we pass in arbitrary uid's to trigger hardwired response
@@ -228,12 +232,13 @@ lookup_user_byuid(char *user, uid_t *uidp, char **dirp)
      */
     } else { 
         *uidp = uid;
+        *gidp = gid;
         *dirp = xstrdup("/");
     }
 }
 
 static void
-lookup_user_byname(char *user, uid_t *uidp, char **dirp)
+lookup_user_byname(char *user, uid_t *uidp, gid_t *gidp, char **dirp)
 {
     struct passwd *pw = getpwnam(user);
 
